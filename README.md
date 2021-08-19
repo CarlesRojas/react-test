@@ -109,3 +109,33 @@ class RegisteredUser {
     }
 }
 ```
+
+# Ejercicio 2
+
+### Explicación
+
+He creado un nuevo proyecto de React con CRA usando Typescript. He incorporado Redux al proyecto con la acción de Añadir Marcador. Se puede ver el código en el directorio `src/redux` y se usa su proveedor en el archivo `src/index.tsx`.
+
+A continuación he añadido la API de Google que se carga en cuanto el componente `src/App.tsx` se renderiza por primera vez. Todo el código relacionado con las APIs de Google Maps se encuentra en un contexto de React en el archivo `src/contexts/MapsAPI.txt`. Una vez cargada la API, el componente `src/App.tsx` renderiza los componentes `src/components/Map.tsx` y `src/components/Search.tsx`.
+
+El componente `src/components/Map.tsx` instancia y enseña el mapa. Esta instancia solo se crea la primera vez y se guarda en el contexto `src/contexts/MapsAPI.txt`.
+
+El componente `src/components/Search.tsx` muestra la barra de búsqueda y cuando el usuario para de escribir, llama a la API de Google Places. Esta llamada a la API puede verse también en el archivo `src/contexts/MapsAPI.txt`. Cada sugerencia es una instancia de la clase `src/components/Suggestion.tsx` y se pueden seleccionar para añadir un marcador al mapa mediante el ratón o el teclado. La información de cada uno de estos marcadores se guarda en la store de Redux.
+
+Finalmente he implementado algunos Tests en el archivo `src/App.test.tsx`.
+
+### Como Ejecutar
+
+Para ejecutar el proyecto seguir estos pasos
+
+-   [ ] Es necesario tener instalado Node.js.
+
+-   [ ] Clonar el Repositorio con `git clone https://github.com/CarlesRojas/react-test.git` y entrar en el directorio con `cd react-test`
+
+-   [ ] Crear un archivo `.env` en el directorio base del repositorio con el contenido que he adjuntado en el email (Esto contiene la key de Google Maps que no se sube a Github).
+
+-   [ ] Instalar dependencias con `npm i`
+
+-   [ ] Iniciar la app con `npm start`
+
+-   [ ] Los tests pueden ejecutarse con `npm run test`

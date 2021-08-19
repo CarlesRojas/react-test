@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useContext, KeyboardEvent } from "r
 import { useDispatch } from "react-redux";
 import { bindActionCreators } from "redux";
 import { actionCreators } from "../redux";
-import { Suggestion } from "../contexts/MapsAPI";
+import { Suggestion as SuggestionType } from "../contexts/MapsAPI";
+import Suggestion from "./Suggestion";
 import SVG from "react-inlinesvg";
 
 // Contexts
@@ -16,7 +17,7 @@ import CrossIcon from "../resources/cross.svg";
 import SearchIcon from "../resources/search.svg";
 
 interface SearchState {
-    suggestions: Suggestion[];
+    suggestions: SuggestionType[];
     selected: number;
     query: string;
 }
@@ -115,7 +116,7 @@ export default function Search() {
     };
 
     // On suggestion clicked
-    const onSuggestionClick = (suggestion: Suggestion) => {
+    const onSuggestionClick = (suggestion: SuggestionType) => {
         setSearchState({ suggestions: [], selected: 0, query: suggestion.name });
 
         if (map) {
@@ -132,18 +133,6 @@ export default function Search() {
             // Dispatch action
             addMarker(suggestion);
         }
-    };
-
-    // #################################################
-    //   UTILS
-    // #################################################
-
-    // Normalize string
-    const normalizeString = (value: string) => {
-        return value
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/\p{Diacritic}/gu, "");
     };
 
     // #################################################
@@ -169,14 +158,16 @@ export default function Search() {
         searchState.suggestions && searchState.suggestions.length ? (
             <div className="suggestions">
                 {searchState.suggestions.map((suggestion, i) => {
-                    const queryIndex = normalizeString(suggestion.name).indexOf(normalizeString(searchState.query));
-
                     return (
-                        <p className={searchState.selected === i ? "selected" : ""} key={suggestion.id} onMouseEnter={() => onMouseEnter(i)} onClick={() => onSuggestionClick(suggestion)}>
-                            {suggestion.name.slice(0, queryIndex)}
-                            <span>{suggestion.name.slice(queryIndex, queryIndex + searchState.query.length)}</span>
-                            {suggestion.name.slice(queryIndex + searchState.query.length, suggestion.name.length)}
-                        </p>
+                        <Suggestion
+                            key={suggestion.id}
+                            suggestion={suggestion}
+                            i={i}
+                            selected={searchState.selected === i}
+                            onMouseEnter={onMouseEnter}
+                            onSuggestionClick={onSuggestionClick}
+                            query={searchState.query}
+                        ></Suggestion>
                     );
                 })}
             </div>
