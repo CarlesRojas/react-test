@@ -57,8 +57,6 @@ const MapsAPIProvider: React.FC = ({ children }) => {
             return new Promise((resolve, reject) => {
                 if (!geocoder.current) return reject();
 
-                console.log(place);
-
                 const result = {
                     name: place.description,
                     id: place.place_id,

@@ -3,7 +3,8 @@ import { ActionType } from "../actionTypes";
 export interface Marker {
     name: string;
     lat: number;
-    lon: number;
+    lng: number;
+    id: string;
 }
 
 export interface AddMarkerAction {

@@ -37,7 +37,7 @@ export default function Map() {
             }
         };
 
-        if (!map) initMap(13, new google.maps.LatLng(41.386950887735196, 2.170084327636621));
+        if (!map) initMap(6, new google.maps.LatLng(41.386950887735196, 2.170084327636621));
     }, [map, setMap]);
 
     return <div className="map" ref={mapRef}></div>;

@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect, useContext, MouseEvent, KeyboardEvent } from "react";
+import { useDispatch } from "react-redux";
+import { bindActionCreators } from "redux";
+import { actionCreators } from "../redux";
 import { Suggestion } from "../contexts/MapsAPI";
 import SVG from "react-inlinesvg";
 
@@ -19,9 +22,14 @@ interface SearchState {
 
 // Types
 type InputEvent = React.FormEvent<HTMLInputElement>;
+
 export default function Search() {
     // Contexts
-    const { getSuggestions } = useContext(MapsAPI);
+    const { getSuggestions, map } = useContext(MapsAPI);
+
+    // Redux Marker
+    const dispatch = useDispatch();
+    const { addMarker } = bindActionCreators(actionCreators, dispatch);
 
     // Search state
     const [searchState, setSearchState] = useState<SearchState>({ suggestions: [], selected: 0, query: "" });
@@ -53,6 +61,8 @@ export default function Search() {
             suggestionsTimeout.current = setTimeout(async () => {
                 if (getSuggestions) {
                     const suggestionResult = await getSuggestions(value);
+                    console.log(value);
+                    console.log(suggestionResult);
 
                     setSearchState((prev) => {
                         return { ...prev, suggestions: suggestionResult, selected: 0 };
@@ -77,7 +87,7 @@ export default function Search() {
 
     // Use arrows to navigate suggestions
     const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-        if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].indexOf(event.code) > -1) {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].indexOf(event.code) > -1) {
             // Prevent scroll
             event.preventDefault();
 
@@ -96,7 +106,7 @@ export default function Search() {
             }
 
             // Select suggestion
-            else if (event.code === "Enter" || event.code === "Space") {
+            else if (event.code === "Enter" && searchState.selected < searchState.suggestions.length) {
                 onSuggestionClick(searchState.suggestions[searchState.selected]);
             }
         }
@@ -111,6 +121,18 @@ export default function Search() {
     const onSuggestionClick = (suggestion: Suggestion) => {
         console.log(suggestion);
         setSearchState({ suggestions: [], selected: 0, query: suggestion.name });
+
+        if (map) {
+            new google.maps.Marker({
+                position: new google.maps.LatLng(suggestion.lat, suggestion.lng),
+                map,
+                title: suggestion.name,
+            });
+
+            map.panTo(new google.maps.LatLng(suggestion.lat, suggestion.lng));
+
+            addMarker(suggestion);
+        }
     };
 
     // On component mount and unmount
@@ -130,16 +152,18 @@ export default function Search() {
                 {searchState.suggestions.map((suggestion, i) => {
                     const queryIndex = suggestion.name.toLowerCase().indexOf(searchState.query.toLowerCase());
 
-                    return <p
-                        className={searchState.selected === i ? "selected" : ""}
-                        key={suggestion.id}
-                        onMouseEnter={(event: MouseEvent<HTMLParagraphElement>) => onMouseEnter(event, i)}
-                        onClick={() => onSuggestionClick(suggestion)}
-                    >
-                        {suggestion.name.slice(0, queryIndex)}
-                        <span>{suggestion.name.slice(queryIndex, queryIndex + searchState.query.length)}</span>
-                        {suggestion.name.slice(queryIndex + searchState.query.length, suggestion.name.length)}
-                    </p>
+                    return (
+                        <p
+                            className={searchState.selected === i ? "selected" : ""}
+                            key={suggestion.id}
+                            onMouseEnter={(event: MouseEvent<HTMLParagraphElement>) => onMouseEnter(event, i)}
+                            onClick={() => onSuggestionClick(suggestion)}
+                        >
+                            {suggestion.name.slice(0, queryIndex)}
+                            <span>{suggestion.name.slice(queryIndex, queryIndex + searchState.query.length)}</span>
+                            {suggestion.name.slice(queryIndex + searchState.query.length, suggestion.name.length)}
+                        </p>
+                    );
                 })}
             </div>
         ) : null;
