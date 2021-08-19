@@ -9,14 +9,21 @@ import "./styles/app.scss";
 import { MapsAPI } from "./contexts/MapsAPI";
 
 export default function App() {
-    console.log("Render App");
     // Contexts
     const { mapsAPILoaded, loadMapsAPI } = useContext(MapsAPI);
+
+    // #################################################
+    //   LOAD MAPS
+    // #################################################
 
     // Load google maps API
     useEffect(() => {
         if (!mapsAPILoaded && loadMapsAPI) loadMapsAPI();
     }, [loadMapsAPI, mapsAPILoaded]);
+
+    // #################################################
+    //   RENDER
+    // #################################################
 
     return (
         <div className="app">

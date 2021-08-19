@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext, MouseEvent, KeyboardEvent } from "react";
+import React, { useState, useRef, useEffect, useContext, KeyboardEvent } from "react";
 import { useDispatch } from "react-redux";
 import { bindActionCreators } from "redux";
 import { actionCreators } from "../redux";
@@ -13,6 +13,7 @@ import "../styles/search.scss";
 
 // Icons
 import CrossIcon from "../resources/cross.svg";
+import SearchIcon from "../resources/search.svg";
 
 interface SearchState {
     suggestions: Suggestion[];
@@ -27,6 +28,10 @@ export default function Search() {
     // Contexts
     const { getSuggestions, map } = useContext(MapsAPI);
 
+    // #################################################
+    //   STATE
+    // #################################################
+
     // Redux Marker
     const dispatch = useDispatch();
     const { addMarker } = bindActionCreators(actionCreators, dispatch);
@@ -34,8 +39,9 @@ export default function Search() {
     // Search state
     const [searchState, setSearchState] = useState<SearchState>({ suggestions: [], selected: 0, query: "" });
 
-    // Get suggestions timeout
-    const suggestionsTimeout = useRef<NodeJS.Timeout | null>(null);
+    // #################################################
+    //   EVENTS
+    // #################################################
 
     // Click outside ref
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -44,14 +50,15 @@ export default function Search() {
     };
     useOutsideAlerter(wrapperRef, onClickOutside);
 
+    // Get suggestions timeout
+    const suggestionsTimeout = useRef<NodeJS.Timeout | null>(null);
+
     // On search query change
     const onInputChange = (event: InputEvent) => {
         const value = event.currentTarget.value;
 
         // Set value
-        setSearchState((prev) => {
-            return { ...prev, query: value };
-        });
+        setSearchState((prev) => ({ ...prev, query: value }));
 
         // Clear timeout
         if (suggestionsTimeout.current) clearTimeout(suggestionsTimeout.current);
@@ -61,28 +68,18 @@ export default function Search() {
             suggestionsTimeout.current = setTimeout(async () => {
                 if (getSuggestions) {
                     const suggestionResult = await getSuggestions(value);
-                    console.log(value);
-                    console.log(suggestionResult);
-
-                    setSearchState((prev) => {
-                        return { ...prev, suggestions: suggestionResult, selected: 0 };
-                    });
+                    setSearchState((prev) => ({ ...prev, suggestions: suggestionResult, selected: 0 }));
                 }
             }, 500);
         }
 
         // Clear suggestions
-        else
-            setSearchState((prev) => {
-                return { ...prev, suggestions: [], selected: 0 };
-            });
+        else setSearchState((prev) => ({ ...prev, suggestions: [], selected: 0 }));
     };
 
     // On hover over suggestion
-    const onMouseEnter = (event: MouseEvent<HTMLParagraphElement>, i: number) => {
-        setSearchState((prev) => {
-            return { ...prev, selected: i };
-        });
+    const onMouseEnter = (i: number) => {
+        setSearchState((prev) => ({ ...prev, selected: i }));
     };
 
     // Use arrows to navigate suggestions
@@ -93,16 +90,12 @@ export default function Search() {
 
             // Move up
             if (event.code === "ArrowUp") {
-                setSearchState((prev) => {
-                    return { ...prev, selected: prev.selected === 0 ? prev.suggestions.length - 1 : prev.selected - 1 };
-                });
+                setSearchState((prev) => ({ ...prev, selected: prev.selected === 0 ? prev.suggestions.length - 1 : prev.selected - 1 }));
             }
 
             // Move down
             else if (event.code === "ArrowDown") {
-                setSearchState((prev) => {
-                    return { ...prev, selected: (prev.selected + 1) % prev.suggestions.length };
-                });
+                setSearchState((prev) => ({ ...prev, selected: (prev.selected + 1) % prev.suggestions.length }));
             }
 
             // Select suggestion
@@ -112,28 +105,50 @@ export default function Search() {
         }
     };
 
+    // Input ref
+    const inputRef = useRef<HTMLInputElement>(null);
+
     // On clear button clicked
     const onClearClicked = () => {
         setSearchState({ suggestions: [], selected: 0, query: "" });
+        inputRef.current?.focus();
     };
 
     // On suggestion clicked
     const onSuggestionClick = (suggestion: Suggestion) => {
-        console.log(suggestion);
         setSearchState({ suggestions: [], selected: 0, query: suggestion.name });
 
         if (map) {
+            // Add new marker to the map
             new google.maps.Marker({
                 position: new google.maps.LatLng(suggestion.lat, suggestion.lng),
                 map,
                 title: suggestion.name,
             });
 
+            // Pan to the marker
             map.panTo(new google.maps.LatLng(suggestion.lat, suggestion.lng));
 
+            // Dispatch action
             addMarker(suggestion);
         }
     };
+
+    // #################################################
+    //   UTILS
+    // #################################################
+
+    // Normalize string
+    const normalizeString = (value: string) => {
+        return value
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/\p{Diacritic}/gu, "");
+    };
+
+    // #################################################
+    //   COMPONENT MOUNT & UNMOUNT
+    // #################################################
 
     // On component mount and unmount
     useEffect(() => {
@@ -145,20 +160,19 @@ export default function Search() {
         };
     }, []);
 
+    // #################################################
+    //   RENDER
+    // #################################################
+
     // Suggestions
     const suggestionDOM =
         searchState.suggestions && searchState.suggestions.length ? (
             <div className="suggestions">
                 {searchState.suggestions.map((suggestion, i) => {
-                    const queryIndex = suggestion.name.toLowerCase().indexOf(searchState.query.toLowerCase());
+                    const queryIndex = normalizeString(suggestion.name).indexOf(normalizeString(searchState.query));
 
                     return (
-                        <p
-                            className={searchState.selected === i ? "selected" : ""}
-                            key={suggestion.id}
-                            onMouseEnter={(event: MouseEvent<HTMLParagraphElement>) => onMouseEnter(event, i)}
-                            onClick={() => onSuggestionClick(suggestion)}
-                        >
+                        <p className={searchState.selected === i ? "selected" : ""} key={suggestion.id} onMouseEnter={() => onMouseEnter(i)} onClick={() => onSuggestionClick(suggestion)}>
                             {suggestion.name.slice(0, queryIndex)}
                             <span>{suggestion.name.slice(queryIndex, queryIndex + searchState.query.length)}</span>
                             {suggestion.name.slice(queryIndex + searchState.query.length, suggestion.name.length)}
@@ -171,14 +185,19 @@ export default function Search() {
     return (
         <div className="search" onKeyDown={onKeyDown} ref={wrapperRef}>
             <div className="inputContainer">
-                <input type="text" value={searchState.query} onChange={onInputChange} />
-                {searchState.query.length > 0 && <SVG className="clear" src={CrossIcon} onClick={onClearClicked} />}
+                <input type="text" placeholder="Search places..." value={searchState.query} onChange={onInputChange} ref={inputRef} />
+                {searchState.query.length <= 0 && <SVG className="icon" src={SearchIcon} onClick={() => inputRef.current?.focus()} />}
+                {searchState.query.length > 0 && <SVG className="icon" src={CrossIcon} onClick={onClearClicked} />}
             </div>
 
             {suggestionDOM}
         </div>
     );
 }
+
+// #################################################
+//   HOOKS
+// #################################################
 
 // Hook to alert of a click outside of the component
 function useOutsideAlerter(ref: React.RefObject<HTMLDivElement>, callback: () => any) {

@@ -26,13 +26,20 @@ type Place = google.maps.places.QueryAutocompletePrediction;
 export const MapsAPI = createContext<MapsAPIInterface>({});
 
 const MapsAPIProvider: React.FC = ({ children }) => {
+    // #################################################
+    //   STATE
+    // #################################################
+
     const [mapsAPILoaded, setMapsAPILoaded] = useState(false);
     const [map, setMap] = useState<GoogleMap>();
     const geocoder = useRef<Geocoder>();
 
+    // #################################################
+    //   LOAD MAPS
+    // #################################################
+
     // Load Maps API
     const loadMapsAPI = async () => {
-        console.log("Load Map");
         // Create google api script
         const mapsScript = document.createElement("script");
         mapsScript.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places`;
@@ -47,6 +54,10 @@ const MapsAPIProvider: React.FC = ({ children }) => {
             setMapsAPILoaded(true);
         });
     };
+
+    // #################################################
+    //   GET SUGGESTIONS
+    // #################################################
 
     // Get suggestions for a query
     const getSuggestions = async (query: string): Promise<Suggestion[]> => {
