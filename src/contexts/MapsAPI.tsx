@@ -1,16 +1,38 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useState, useRef } from "react";
+
+// Suggestion interface
+interface Suggestion {
+    name: string;
+    lat: number;
+    lng: number;
+    id: string;
+    march: {
+        length: number;
+        offset: number;
+    };
+}
 
 // Context interface
 interface MapsAPIInterface {
+    map?: GoogleMap;
+    setMap?: React.Dispatch<React.SetStateAction<GoogleMap | undefined>>;
     mapsAPILoaded?: boolean;
     loadMapsAPI?: () => Promise<void>;
+    getSuggestions?: (query: string) => Promise<Suggestion[] | Error>;
 }
+
+// Types
+type GoogleMap = google.maps.Map;
+type Geocoder = google.maps.Geocoder;
+type Place = google.maps.places.QueryAutocompletePrediction;
 
 // API Context
 export const MapsAPI = createContext<MapsAPIInterface>({});
 
 const MapsAPIProvider: React.FC = ({ children }) => {
     const [mapsAPILoaded, setMapsAPILoaded] = useState(false);
+    const [map, setMap] = useState<GoogleMap>();
+    const geocoder = useRef<Geocoder>();
 
     // Load Maps API
     const loadMapsAPI = async () => {
@@ -30,240 +52,68 @@ const MapsAPIProvider: React.FC = ({ children }) => {
         });
     };
 
-    // // Get the total number of rows
-    // const getNumRows = async () => {
-    //     // Return if the contract has not been loaded
-    //     if (!contract.current) return -1;
+    // Get suggestions for a query
+    const getSuggestions = async (query: string): Promise<Suggestion[]> => {
+        if (!geocoder.current) geocoder.current = new google.maps.Geocoder();
 
-    //     // Return if we have already fetched it
-    //     if (numRows.current >= 0) return numRows.current;
+        // Function to get lat and lng of a place
+        const getPlaceInfo = async (place: Place): Promise<Suggestion> => {
+            return new Promise((resolve, reject) => {
+                if (!geocoder.current) return reject();
 
-    //     try {
-    //         const value = await contract.current.methods.NUM_ROWS().call();
-    //         numRows.current = parseInt(value);
-    //         return numRows.current;
-    //     } catch (error) {
-    //         console.log(error);
-    //         return -1;
-    //     }
-    // };
+                const result = {
+                    id: place.place_id,
+                    march: place.matched_substrings[0],
+                };
 
-    // // Get the total number of pixels
-    // const getPixelCount = async () => {
-    //     // Return if the contract has not been loaded
-    //     if (!contract.current) return -1;
+                geocoder.current.geocode({ placeId: place.place_id }, (results, status) => {
+                    if (status === google.maps.GeocoderStatus.OK && results) {
+                        resolve({
+                            ...result,
+                            name: results[0].formatted_address,
+                            lat: results[0].geometry.location.lat(),
+                            lng: results[0].geometry.location.lng(),
+                            id: results[0].place_id,
+                        });
+                    } else reject();
+                });
+            });
+        };
 
-    //     // Return if we have already fetched it
-    //     if (pixelCount.current >= 0) return pixelCount.current;
+        return new Promise((resolve) => {
+            // Get service
+            const service = new google.maps.places.AutocompleteService();
 
-    //     try {
-    //         const value = await contract.current.methods.pixelCount().call();
-    //         pixelCount.current = parseInt(value);
-    //         return pixelCount.current;
-    //     } catch (error) {
-    //         console.log(error);
-    //         return -1;
-    //     }
-    // };
+            // Search
+            service.getQueryPredictions({ input: query }, (results, status) => {
+                // Results Ok
+                if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                    Promise.all(results.map((result) => getPlaceInfo(result)))
+                        .then((values) => {
+                            resolve(values);
+                        })
+                        .catch(() => {
+                            resolve([]);
+                        });
+                }
 
-    // // Get the limit number of pixels
-    // const getPixelLimit = async () => {
-    //     // Return if the contract has not been loaded
-    //     if (!contract.current) return -1;
-
-    //     // Return if we have already fetched it
-    //     if (pixelLimit.current >= 0) return pixelLimit.current;
-
-    //     try {
-    //         const value = await contract.current.methods.PIXEL_LIMIT().call();
-    //         pixelLimit.current = parseInt(value);
-    //         return pixelLimit.current;
-    //     } catch (error) {
-    //         console.log(error);
-    //         return -1;
-    //     }
-    // };
-
-    // // Get the coords of the minted pixels
-    // const getMintedPixels = async () => {
-    //     // Return if the contract has not been loaded
-    //     if (!contract.current) return null;
-
-    //     // Return if we have already fetched it
-    //     if (mintedPixels.current !== null) return mintedPixels.current;
-
-    //     // If we do not have the pixel count, get it
-    //     if (pixelCount.current < 0) await getPixelCount();
-
-    //     try {
-    //         // Save as numbers
-    //         mintedPixels.current = [];
-    //         for (let i = 0; i < pixelCount.current; i++) {
-    //             const value = await contract.current.methods.mintedPixels(i).call();
-    //             mintedPixels.current.push(parseInt(value));
-    //         }
-    //         return mintedPixels.current;
-    //     } catch (error) {
-    //         console.log(error);
-    //         return null;
-    //     }
-    // };
-
-    // // Get all the pixels
-    // const getPixels = async () => {
-    //     // Return if the contract has not been loaded
-    //     if (!contract.current) return null;
-
-    //     // Return if we have already fetched it
-    //     if (pixels.current !== null) return pixels.current;
-
-    //     // If we do not have the pixel count, get it
-    //     if (pixelLimit.current < 0) await getPixelLimit();
-
-    //     // If we do not have the minted pixels, get them
-    //     if (mintedPixels.current === null) await getMintedPixels();
-
-    //     try {
-    //         // Load pixels
-    //         pixels.current = [];
-    //         for (let i = 0; i < pixelLimit.current; i++) {
-    //             if (mintedPixels.current.includes(i)) {
-    //                 const currPixel = await contract.current.methods.pixels(i).call();
-    //                 pixels.current.push(currPixel);
-    //             } else pixels.current.push(null);
-    //         }
-
-    //         return pixels.current;
-    //     } catch (error) {
-    //         console.log(error);
-    //         return null;
-    //     }
-    // };
-
-    // // Mint a pixel
-    // const mint = async (coords, color, ethPrice) => {
-    //     // Return if the contract has not been loaded
-    //     if (!contract.current) return false;
-
-    //     // Return if not a correct coords, color or price
-    //     if (typeof coords !== "number" || (coords < 0 && coords >= pixelLimit.current)) return false;
-
-    //     // If we do not have the pixel count, get it
-    //     if (pixelCount.current < 0) await getPixelCount();
-
-    //     try {
-    //         await contract.current.methods.mint(coords, color, Web3.utils.toWei(ethPrice.toString(), "Ether")).send({ from: account });
-
-    //         // Update minted pixels array
-    //         mintedPixels.current.push(coords);
-
-    //         // Update pixel
-    //         pixels.current[coords] = {
-    //             0: coords.toString(),
-    //             1: color,
-    //             2: account,
-    //             3: Web3.utils.toWei(ethPrice.toString(), "Ether").toString(),
-    //             coords: coords.toString(),
-    //             color: color,
-    //             owner: account,
-    //             weiPrice: Web3.utils.toWei(ethPrice.toString(), "Ether").toString(),
-    //         };
-
-    //         // Update pixel count
-    //         pixelCount.current = pixelCount.current + 1;
-
-    //         // Set selected pixel
-    //         setSelectedPixel(coords);
-    //         setColor(color.toLowerCase());
-    //         setEthPrice(ethPrice);
-    //         setMinting(false);
-    //         setBuying(false);
-    //         setColorPickerIsValid(true);
-    //         setEthPriceIsValid(true);
-
-    //         return true;
-    //     } catch (error) {
-    //         console.log(error);
-    //         return false;
-    //     }
-    // };
-
-    // // Change color of a pixel
-    // const changePixelColorAndPrice = async (coords, newColor, newEthPrice) => {
-    //     // Return if the contract has not been loaded
-    //     if (!contract.current) return false;
-
-    //     // If we do not have the pixels get them
-    //     if (pixels.current.length <= 0) await getPixels();
-
-    //     // Return if not a correct coords, color or price
-    //     if (typeof coords !== "number" || (coords < 0 && coords >= pixelLimit.current)) return false;
-
-    //     try {
-    //         // Change pixel color
-    //         await contract.current.methods.changeColorAndPrice(coords, newColor, Web3.utils.toWei(newEthPrice.toString(), "Ether")).send({ from: account });
-
-    //         // Update pixels
-    //         pixels.current[coords]["1"] = newColor.toLowerCase();
-    //         pixels.current[coords]["color"] = newColor.toLowerCase();
-    //         pixels.current[coords]["3"] = Web3.utils.toWei(newEthPrice.toString(), "Ether").toString();
-    //         pixels.current[coords]["weiPrice"] = Web3.utils.toWei(newEthPrice.toString(), "Ether").toString();
-
-    //         return true;
-    //     } catch (error) {
-    //         console.log(error);
-    //         return false;
-    //     }
-    // };
-
-    // // Buy a pixel
-    // const buyPixel = async (coords, newColor, newEthPrice) => {
-    //     // Return if the contract has not been loaded
-    //     if (!contract.current) return false;
-
-    //     // If we do not have the pixels get them
-    //     if (pixels.current.length <= 0) await getPixels();
-
-    //     // Return if not a correct coords, color or price
-    //     if (typeof coords !== "number" || (coords < 0 && coords >= pixelLimit.current)) return false;
-
-    //     // Get pixel info
-    //     const pixelInfo = pixels.current[coords];
-
-    //     try {
-    //         // Buy pixel
-    //         await contract.current.methods.buyPixel(coords, newColor, Web3.utils.toWei(newEthPrice.toString(), "Ether")).send({ from: account, value: pixelInfo.weiPrice });
-
-    //         // Update pixels
-    //         pixels.current[coords]["1"] = newColor.toLowerCase();
-    //         pixels.current[coords]["color"] = newColor.toLowerCase();
-    //         pixels.current[coords]["2"] = account;
-    //         pixels.current[coords]["owner"] = account;
-    //         pixels.current[coords]["3"] = Web3.utils.toWei(newEthPrice.toString(), "Ether").toString();
-    //         pixels.current[coords]["weiPrice"] = Web3.utils.toWei(newEthPrice.toString(), "Ether").toString();
-
-    //         // Set selected pixel
-    //         setSelectedPixel(coords);
-    //         setColor(newColor.toLowerCase());
-    //         setEthPrice(newEthPrice);
-    //         setMinting(false);
-    //         setBuying(false);
-    //         setColorPickerIsValid(true);
-    //         setEthPriceIsValid(true);
-
-    //         return true;
-    //     } catch (error) {
-    //         console.log(error);
-    //         return false;
-    //     }
-    // };
+                // Error
+                else {
+                    resolve([]);
+                }
+            });
+        });
+    };
 
     // Return the context
     return (
         <MapsAPI.Provider
             value={{
+                map,
+                setMap,
                 mapsAPILoaded,
                 loadMapsAPI,
+                getSuggestions,
             }}
         >
             {children}

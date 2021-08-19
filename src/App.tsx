@@ -1,5 +1,6 @@
 import { useEffect, useContext } from "react";
 import Map from "./components/Map";
+import Search from "./components/Search"
 import { useDispatch, useSelector } from "react-redux";
 import { bindActionCreators } from "redux";
 import { actionCreators, State } from "./redux";
@@ -28,6 +29,7 @@ export default function App() {
     return (
         <div className="app">
             {mapsAPILoaded && <Map></Map>}
+            {mapsAPILoaded && <Search></Search>}
 
             {markers.map(({ name, lat, lon }) => (
                 <div className="marker" key={`${lat} ${lon}`}>
