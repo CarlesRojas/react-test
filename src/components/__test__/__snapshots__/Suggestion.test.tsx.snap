@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Suggestion should render the name with the query part highlighted 1`] = `
+<p
+  className="selected"
+  onClick={[Function]}
+  onMouseEnter={[Function]}
+>
+  B
+  <span>
+    arcelon
+  </span>
+  a
+</p>
+`;

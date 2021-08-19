@@ -122,7 +122,7 @@ El componente `src/components/Map.tsx` instancia y enseña el mapa. Esta instanc
 
 El componente `src/components/Search.tsx` muestra la barra de búsqueda y cuando el usuario para de escribir, llama a la API de Google Places. Esta llamada a la API puede verse también en el archivo `src/contexts/MapsAPI.txt`. Cada sugerencia es una instancia de la clase `src/components/Suggestion.tsx` y se pueden seleccionar para añadir un marcador al mapa mediante el ratón o el teclado. La información de cada uno de estos marcadores se guarda en la store de Redux.
 
-Finalmente he implementado algunos Tests en el archivo `src/App.test.tsx`.
+Finalmente he implementado un test usando Snapshots que se puede ver en el directorio `src/components/__test__/`.
 
 ### Como Ejecutar
 
