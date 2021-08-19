@@ -1,15 +1,11 @@
 import React, { createContext, useState, useRef } from "react";
 
 // Suggestion interface
-interface Suggestion {
+export interface Suggestion {
     name: string;
     lat: number;
     lng: number;
     id: string;
-    march: {
-        length: number;
-        offset: number;
-    };
 }
 
 // Context interface
@@ -18,7 +14,7 @@ interface MapsAPIInterface {
     setMap?: React.Dispatch<React.SetStateAction<GoogleMap | undefined>>;
     mapsAPILoaded?: boolean;
     loadMapsAPI?: () => Promise<void>;
-    getSuggestions?: (query: string) => Promise<Suggestion[] | Error>;
+    getSuggestions?: (query: string) => Promise<Suggestion[]>;
 }
 
 // Types
@@ -61,16 +57,17 @@ const MapsAPIProvider: React.FC = ({ children }) => {
             return new Promise((resolve, reject) => {
                 if (!geocoder.current) return reject();
 
+                console.log(place);
+
                 const result = {
+                    name: place.description,
                     id: place.place_id,
-                    march: place.matched_substrings[0],
                 };
 
                 geocoder.current.geocode({ placeId: place.place_id }, (results, status) => {
                     if (status === google.maps.GeocoderStatus.OK && results) {
                         resolve({
                             ...result,
-                            name: results[0].formatted_address,
                             lat: results[0].geometry.location.lat(),
                             lng: results[0].geometry.location.lng(),
                             id: results[0].place_id,
