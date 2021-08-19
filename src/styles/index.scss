@@ -12,7 +12,6 @@
 // #######################################
 
 * {
-    overflow: hidden;
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -25,7 +24,6 @@ html {
     position: relative;
     height: 100%;
     width: 100%;
-    overflow: hidden;
     font-size: $fontSize;
     @include touch-action(none);
 }
@@ -35,7 +33,6 @@ body {
     position: fixed;
     height: 100%;
     width: 100%;
-    overflow: hidden;
     background-color: $background;
     color: $text;
 
